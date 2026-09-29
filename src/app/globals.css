@@ -1,26 +1,444 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --raw-bg: #14110d;
+  --raw-bg-raised: #1b1712;
+  --raw-card: #1f1a15;
+  --raw-fg: #f3ece0;
+  --raw-muted: #4a4032;
+  --raw-muted-fg: #b0a28d;
+  --raw-border: #332c23;
+  --raw-border-strong: #4a4032;
+  --raw-accent: #d4a15e;
+  --raw-accent-strong: #e6bd85;
+  --raw-accent-ink: #221708;
+  --raw-danger: #c1523f;
+  --raw-paper: radial-gradient(120% 90% at 50% 0%, #221c15 0%, #16130e 60%, #100d09 100%);
+
+  /* Fixed hero-video treatment — intentionally NOT redefined under
+     [data-theme="day"]. The video and its dark scrim show in both themes,
+     so the text sitting on top of it needs a constant light color rather
+     than following the theme's (sometimes dark) --color-fg/--color-accent. */
+  --hero-bg: #14110d;
+  --hero-fg: #f3ece0;
+  --hero-fg-80: rgba(243, 236, 224, 0.8);
+  --hero-fg-70: rgba(243, 236, 224, 0.7);
+  --hero-border: rgba(243, 236, 224, 0.25);
+  --hero-accent: #d4a15e;
+  --hero-accent-ink: #221708;
+
+  color-scheme: dark;
+}
+
+[data-theme="day"] {
+  --raw-bg: #f2ebdd;
+  --raw-bg-raised: #eae1cd;
+  --raw-card: #faf6ec;
+  --raw-fg: #201a10;
+  --raw-muted: #ddd0b1;
+  --raw-muted-fg: #6b5c44;
+  --raw-border: #ddd0b1;
+  --raw-border-strong: #c6b58c;
+  --raw-accent: #9c6a2b;
+  --raw-accent-strong: #7d5420;
+  --raw-accent-ink: #fbf4e6;
+  --raw-danger: #a8402d;
+  --raw-paper: radial-gradient(120% 90% at 50% 0%, #fffbf3 0%, #f5eeda 60%, #ebe0c4 100%);
+
+  color-scheme: light;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-bg: var(--raw-bg);
+  --color-bg-raised: var(--raw-bg-raised);
+  --color-card: var(--raw-card);
+  --color-fg: var(--raw-fg);
+  --color-muted: var(--raw-muted);
+  --color-muted-fg: var(--raw-muted-fg);
+  --color-border: var(--raw-border);
+  --color-border-strong: var(--raw-border-strong);
+  --color-accent: var(--raw-accent);
+  --color-accent-strong: var(--raw-accent-strong);
+  --color-accent-ink: var(--raw-accent-ink);
+  --color-danger: var(--raw-danger);
+
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-serif: var(--font-newsreader);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes marquee-reverse {
+  from {
+    transform: translateX(-50%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+::selection {
+  background: var(--color-accent);
+  color: var(--color-accent-ink);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: 999px;
+  border: 2px solid var(--color-bg);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+.text-balance {
+  text-wrap: balance;
+}
+
+.bg-paper {
+  background-image: var(--raw-paper);
+}
+
+.drop-cap::first-letter {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: 3.4em;
+  line-height: 0.78;
+  float: left;
+  padding-right: 0.1em;
+  padding-top: 0.03em;
+  color: var(--color-accent);
+}
+
+.rule {
+  height: 1px;
+  background: color-mix(in srgb, var(--color-fg) 12%, transparent);
+}
+
+.toc-rail-panel {
+  /* Radius settles onto its rectangular target well before width/padding
+     finish growing, so the shape never lingers as a stretched oval. Every
+     property shares the same easing curve as the rest of the site's motion
+     (see Reveal's framer-motion easing) so nothing feels mismatched.
+     backdrop-filter is deliberately NOT animated here — blur radius is one
+     of the most expensive properties a browser can transition (it has to
+     resample the backdrop every frame), and doing that alongside padding/
+     border-radius on hover was the actual cause of this panel feeling
+     janky. The blur stays a single constant value instead. */
+  transition:
+    border-radius 150ms cubic-bezier(0.22, 1, 0.36, 1),
+    padding 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.toc-rail-row {
+  transition: all 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.shine-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.shine-card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -150%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(
+    115deg,
+    transparent 20%,
+    color-mix(in srgb, var(--color-fg) 8%, transparent) 50%,
+    transparent 80%
+  );
+  transform: skewX(-20deg);
+  transition: left 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+
+.shine-card:hover::after {
+  left: 150%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shine-card::after {
+    transition: none;
+  }
+}
+
+/* Liquid-glass treatment for the two secondary CTAs ("Get in touch" in the
+   hero, "Résumé" in the header) that need real presence against whatever's
+   behind them — the hero video or a page section — without becoming a solid
+   fill. Structure: .glass-button is the outer pill (clips + hosts the text);
+   .glass-button__surface is an absolutely-positioned layer BEHIND the label
+   that carries the actual refraction, so the backdrop warps while the text
+   on top stays crisp. The distortion comes from the SVG filter in
+   svg-filters.tsx (feTurbulence + feDisplacementMap) — real
+   refraction, not just a blur — declared as a progressive enhancement after
+   a plain blur() fallback, since Safari doesn't support SVG filter
+   references inside backdrop-filter and would otherwise drop the whole
+   declaration. --glass-fg defaults to the active theme's foreground and is
+   overridden to the fixed --hero-fg token by .glass-button--hero so it
+   stays legible over the (theme-invariant) video regardless of theme. Only
+   background/shadow/transform ever transition — the filter and blur radius
+   themselves stay constant, same reasoning as .toc-rail-panel. */
+.glass-button {
+  --glass-fg: var(--color-fg);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  transition:
+    transform 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.glass-button--hero {
+  --glass-fg: var(--hero-fg);
+}
+
+.glass-button__surface {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--glass-fg) 12%, transparent);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  backdrop-filter: url(#liquid-glass-distortion) blur(10px) saturate(160%);
+  box-shadow:
+    0 6px 20px -8px rgba(0, 0, 0, 0.4),
+    inset 1px 1px 0.5px -0.5px color-mix(in srgb, var(--glass-fg) 85%, transparent),
+    inset -1px -1px 0.5px -0.5px color-mix(in srgb, var(--glass-fg) 45%, transparent),
+    inset 0 0 8px 3px color-mix(in srgb, var(--glass-fg) 14%, transparent);
+  transition:
+    background-color 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.glass-button:hover .glass-button__surface {
+  background: color-mix(in srgb, var(--glass-fg) 20%, transparent);
+  box-shadow:
+    0 8px 24px -8px rgba(0, 0, 0, 0.45),
+    inset 1px 1px 0.5px -0.5px color-mix(in srgb, var(--glass-fg) 95%, transparent),
+    inset -1px -1px 0.5px -0.5px color-mix(in srgb, var(--glass-fg) 60%, transparent),
+    inset 0 0 10px 4px color-mix(in srgb, var(--glass-fg) 22%, transparent);
+}
+
+.glass-button__content {
+  position: relative;
+  z-index: 10;
+}
+
+/* The header sits flush against the very top of the viewport, where the
+   distortion filter can run out of real backdrop to sample above the
+   element and clip to a hard dark edge instead of refracting smoothly.
+   Hero's CTA sits safely mid-page and keeps the full distortion; header
+   chrome falls back to plain blur/tint/bevel — still reads as glass,
+   without the edge-of-viewport risk. */
+.glass-button--flat .glass-button__surface {
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+}
+
+/* Bottom-weighted scrim for the project photo masthead — same fixed
+   --hero-bg token the video overlay uses, so the title text sitting on top
+   of each project's generated cover photo reads the same in both themes
+   instead of following the (sometimes light) --color-fg. */
+.case-scrim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    to top,
+    color-mix(in srgb, var(--hero-bg) 88%, transparent) 0%,
+    color-mix(in srgb, var(--hero-bg) 45%, transparent) 38%,
+    transparent 75%
+  );
+}
+
+.hero-frame {
+  background-image: var(--raw-paper);
+}
+
+.hero-frame::before {
+  content: "";
+  position: absolute;
+  inset: -15%;
+  background:
+    radial-gradient(
+      42% 34% at 22% 18%,
+      color-mix(in srgb, var(--color-accent) 24%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      38% 30% at 82% 74%,
+      color-mix(in srgb, var(--color-accent-strong) 18%, transparent),
+      transparent 70%
+    );
+  animation: hero-drift 24s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+/* Each icon travels its own circular path independently (rather than the
+   whole ring rotating as a rigid body) so the logo stays upright instead of
+   tumbling as it orbits — rotate to the angle, translate out to radius,
+   counter-rotate back to level. Multiple icons share this one keyframe,
+   spaced evenly around the ring via a negative animation-delay per icon
+   (see skills-orbit.tsx), rather than each needing its own keyframe. */
+@keyframes orbit-spin {
+  from {
+    transform: rotate(0deg) translateX(var(--orbit-radius)) rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg) translateX(var(--orbit-radius)) rotate(-360deg);
+  }
+}
+
+.orbit-icon {
+  animation-name: orbit-spin;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orbit-icon {
+    /* A negative animation-delay already offsets each icon to its correct
+       spot around the ring before the very first paint — pausing (instead
+       of clearing the animation) keeps that spacing frozen in place rather
+       than collapsing every icon to the same starting point. */
+    animation-play-state: paused;
+  }
+}
+
+@keyframes hero-drift {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  100% {
+    transform: translate(3%, -4%) scale(1.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-frame::before {
+    animation: none;
+  }
+}
+
+.hero-video {
+  pointer-events: none;
+  opacity: 0.92;
+  filter: saturate(1.08) brightness(1.05);
+}
+
+/* This clip is a naturally dark, low-contrast loop — a light scrim is
+   enough to guarantee the headline text stays readable, without crushing
+   the video's own detail the way a heavier scrim would. */
+.hero-scrim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--hero-bg) 18%, transparent);
+}
+
+/* The video plays in both themes now — its own scene provides the mood,
+   and .hero-fg-* keeps the overlaid text legible regardless of --color-fg. */
+
+.hero-grain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.hero-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    85% 75% at 50% 40%,
+    transparent 45%,
+    color-mix(in srgb, var(--hero-bg) 55%, transparent) 100%
+  );
+}
+
+/* Masks the source clip's loop seam (its last frame doesn't match its
+   first) with a brief dark pulse timed to the restart, via hero.tsx's
+   timeupdate listener setting this element's opacity directly. The
+   transition is what turns those sparse JS ticks into a smooth fade rather
+   than a stepped one. */
+.hero-loop-veil {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--hero-bg);
+  opacity: 0;
+  transition: opacity 200ms linear;
+}
+
+/* Same idea as .hero-vignette, tuned for a portrait photo card instead of a
+   widescreen frame — pulls focus toward the face and quiets a busy edge
+   without needing to mask the subject out of the background. */
+.photo-vignette {
+  background: radial-gradient(
+    120% 100% at 50% 38%,
+    transparent 45%,
+    color-mix(in srgb, var(--hero-bg) 60%, transparent) 100%
+  );
+}
+
+.theme-reveal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  pointer-events: none;
+  border-radius: 50%;
+  transform-origin: center;
 }
