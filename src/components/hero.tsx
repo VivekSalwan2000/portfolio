@@ -15,9 +15,16 @@ export function Hero() {
   const loopVeilRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // The autoplay attribute alone can silently stay paused for larger
-    // video files that haven't finished an initial buffer yet — nudge it
-    // once metadata is ready as a fallback.
+    // The autoplay attribute alone can silently stay paused — battery
+    // saver mode, a slow initial connection, or other browser autoplay
+    // heuristics can all block it even though the video is muted. When
+    // that happens Chrome renders its own big play-button overlay on top
+    // (not anything of ours) so visitors aren't stuck looking at a frozen
+    // video. Rather than rely on one retry, this listens on every signal
+    // that autoplay might now succeed: once metadata/data/enough-to-play
+    // arrives, and — the reliable fallback of last resort — the visitor's
+    // very first interaction anywhere on the page, which every browser
+    // treats as a user gesture that unblocks playback.
     if (shouldReduceMotion) return;
     const video = videoRef.current;
     if (!video) return;
@@ -26,7 +33,16 @@ export function Hero() {
     };
     tryPlay();
     video.addEventListener("loadeddata", tryPlay);
-    return () => video.removeEventListener("loadeddata", tryPlay);
+    video.addEventListener("canplay", tryPlay);
+    video.addEventListener("canplaythrough", tryPlay);
+    const interactionEvents = ["pointerdown", "keydown", "touchstart", "scroll"] as const;
+    interactionEvents.forEach((ev) => window.addEventListener(ev, tryPlay, { once: true, passive: true }));
+    return () => {
+      video.removeEventListener("loadeddata", tryPlay);
+      video.removeEventListener("canplay", tryPlay);
+      video.removeEventListener("canplaythrough", tryPlay);
+      interactionEvents.forEach((ev) => window.removeEventListener(ev, tryPlay));
+    };
   }, [shouldReduceMotion]);
 
   useEffect(() => {
@@ -81,7 +97,7 @@ export function Hero() {
           loop
           muted
           playsInline
-          preload="metadata"
+          preload="auto"
           poster="/hero-poster.jpg"
           aria-hidden="true"
           src="/hero-bg.mp4"
