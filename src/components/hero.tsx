@@ -13,6 +13,7 @@ export function Hero() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
   const loopVeilRef = useRef<HTMLDivElement>(null);
+  const posterCoverRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
     // The autoplay attribute alone can silently stay paused — battery
@@ -73,6 +74,41 @@ export function Hero() {
     return () => video.removeEventListener("timeupdate", onTimeUpdate);
   }, [shouldReduceMotion]);
 
+  useEffect(() => {
+    // Whatever the video's actual paused/loading state is at any moment —
+    // waiting on Safari's Low Power Mode to allow playback, buffering,
+    // browser-specific autoplay heuristics — the visitor should only ever
+    // see either the still poster frame or the actively playing video,
+    // never the browser's own native "this video isn't playing" chrome
+    // (the play-button overlay Chrome and Safari both render on top of a
+    // paused <video>). This static poster image sits above the video and
+    // only fades away once the "playing" event fires, i.e. real playback
+    // has genuinely started — not just "autoplay was attempted" — and
+    // comes back if it ever pauses again for any reason.
+    if (shouldReduceMotion) return;
+    const video = videoRef.current;
+    const cover = posterCoverRef.current;
+    if (!video || !cover) return;
+
+    const hideCover = () => {
+      cover.style.opacity = "0";
+    };
+    const showCover = () => {
+      cover.style.opacity = "1";
+    };
+
+    video.addEventListener("playing", hideCover);
+    video.addEventListener("pause", showCover);
+    // Autoplay can start synchronously before this effect even runs — in
+    // that case the "playing" event already fired and this listener
+    // missed it, so check the current state directly too.
+    if (!video.paused) hideCover();
+    return () => {
+      video.removeEventListener("playing", hideCover);
+      video.removeEventListener("pause", showCover);
+    };
+  }, [shouldReduceMotion]);
+
   // The video (background layer) and the name/CTA block (foreground layer)
   // travel at different rates as the hero scrolls past — that gap in speed
   // is what reads as depth. The video is scaled up so translating it never
@@ -101,6 +137,14 @@ export function Hero() {
           poster="/hero-poster.jpg"
           aria-hidden="true"
           src="/hero-bg.mp4"
+        />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          ref={posterCoverRef}
+          src="/hero-poster.jpg"
+          alt=""
+          aria-hidden="true"
+          className="hero-poster-cover absolute inset-0 h-full w-full object-cover"
         />
         <div className="hero-scrim" aria-hidden="true" />
         <div className="hero-grain" aria-hidden="true" />

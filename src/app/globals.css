@@ -376,6 +376,20 @@ body {
   filter: saturate(1.08) brightness(1.05);
 }
 
+/* Sits above the video and hides it — poster frame and video are visually
+   identical, so this reads as "the hero is just there" — until playback
+   has genuinely started (see hero.tsx's "playing" listener). This is what
+   stops a slow/blocked autoplay from ever showing the browser's own
+   native paused-video chrome (Chrome and Safari both render a play-button
+   overlay on top of a <video> that isn't playing); the visitor never sees
+   the raw video element in a state where a browser would draw one. */
+.hero-poster-cover {
+  pointer-events: none;
+  opacity: 1;
+  filter: saturate(1.08) brightness(1.05);
+  transition: opacity 250ms linear;
+}
+
 /* This clip is a naturally dark, low-contrast loop — a light scrim is
    enough to guarantee the headline text stays readable, without crushing
    the video's own detail the way a heavier scrim would. */
